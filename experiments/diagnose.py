@@ -1,8 +1,8 @@
 """Replay the six d=10^6 runs, logging every mean and weight update.
 
-Training calls the unchanged core.update. Extra measurements do not consume
+Training uses core.update. Measurements do not consume
 the training random stream. Full final arrays and saved checkpoints must
-match the original run before a trace is accepted.
+match the saved run before a trace is accepted.
 """
 import argparse
 from datetime import datetime, timezone
@@ -62,9 +62,9 @@ def replay(source_path):
     source = json.loads(source_bytes)
     c = source["config"]
     if source["code_sha256"] != code_digest():
-        raise ValueError("Simulation code differs from the original run")
+        raise ValueError("Simulation code differs from the saved run")
     if c["representation"] != "dense" or c["estimator"] != "direct":
-        raise ValueError("This diagnostic is for the existing dense direct runs")
+        raise ValueError("Trajectory logging requires dense vectors and the direct estimator")
     streams = np.random.SeedSequence(c["seed"]).spawn(3)
     init_rng, train_rng = [np.random.default_rng(s) for s in streams[:2]]
     state = initialize(init_rng, c["dimension"], c["components"], c["weights"],
@@ -92,7 +92,7 @@ def replay(source_path):
         if step == c["steps"]:
             break
         x, labels, mass = draw_batch(train_rng, state, c["batch_size"], c["sampling"])
-        # Read-only responsibility measurement at the same PRE-update state.
+        # Measure responsibilities at the pre-update state without changing it.
         responsibilities = np.exp(log_responsibilities(x, state.means, state.log_weights))
         counts = np.bincount(labels, minlength=len(state.true_weights))
         contributions = np.array([(mass[labels == j, None] * responsibilities[labels == j]).sum(axis=0)
@@ -113,7 +113,7 @@ def replay(source_path):
     with np.load(source_path.with_suffix(".npz")) as checkpoint:
         for key in ["means", "log_weights", "truth", "true_weights", "labels"]:
             if not np.array_equal(getattr(state, key), checkpoint[key]):
-                raise ValueError(f"Final full array differs from original checkpoint: {key}")
+                raise ValueError(f"Final full array differs from saved checkpoint: {key}")
     errors = np.array([r["final_mapping_batch_error"] for r in trace[1:]])
     remaining_max = np.maximum.accumulate(errors[::-1])[::-1]
     stable = np.flatnonzero(remaining_max < 1e-8)
@@ -123,7 +123,7 @@ def replay(source_path):
                                          final["log_weights"], assignment, c["weights"], source["separation"])]
     p = np.asarray(c["weights"])
     v = stationary_coordinate_variance(p, c["learning_rate"], c["batch_size"])
-    return {"source_run_id": source["run_id"], "source_suite": "rebuttal_scale_d1e6",
+    return {"source_run_id": source["run_id"], "source_suite": "high_dimension",
             "source_json_sha256": hashlib.sha256(source_bytes).hexdigest(),
             "simulation_code_sha256": source["code_sha256"],
             "diagnostic_code_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -149,12 +149,12 @@ def replay(source_path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, default=ROOT / "results/rebuttal_scale_d1e6")
+    parser.add_argument("--source", type=Path, default=ROOT / "results/high_dimension")
     parser.add_argument("--output", type=Path, default=ROOT / "results/diagnostics_d1e6")
     args = parser.parse_args()
     manifest = json.loads((args.source / "manifest.json").read_text())
-    if manifest["suite"] != "rebuttal_scale_d1e6":
-        raise ValueError("Expected the existing d=10^6 suite")
+    if manifest["suite"] != "high_dimension":
+        raise ValueError("Expected the high_dimension experiment suite")
     args.output.mkdir(parents=True, exist_ok=True)
     fingerprint = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     code_dir = args.output / "code"
@@ -190,7 +190,7 @@ def main():
         "trace_code_sha256": sorted(trace_fingerprints),
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "sum_replay_seconds": total_seconds,
-        "scope": "Exact replays for per-update measurements; no new experiment settings or seeds"
+        "scope": "Per-update mean and weight measurements with exact checkpoint verification"
     }, indent=2) + "\n")
 
 

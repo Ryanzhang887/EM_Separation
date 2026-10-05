@@ -1,4 +1,4 @@
-"""Report only mean and weight trajectories for the existing d=10^6 runs."""
+"""Plot fitted-mean and fitted-weight trajectories at d=10^6."""
 import csv
 import hashlib
 import json
@@ -125,21 +125,21 @@ def generate_diagnostic_figures(source_runs, diagnostic_path, out):
         writer.writerows(rows)
     (out / "diagnostic_summary.json").write_text(json.dumps(rows, indent=2) + "\n")
     (out / "diagnostic_provenance.json").write_text(json.dumps({
-        "scope": "Fitted-mean and fitted-weight trajectories of the existing six d=10^6 runs",
-        "replays": 6, "new_experiment_settings": 0,
+        "scope": "Fitted-mean and fitted-weight trajectories for six d=10^6 runs",
+        "replays": 6,
         "diagnostic_code_sha256": code_hash,
         "trace_code_sha256": manifest["trace_code_sha256"],
         "diagnostic_figure_code_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "sum_replay_seconds": manifest["sum_replay_seconds"],
         "all_final_arrays_bitwise_equal": True, "machine": manifest["machine"]}, indent=2) + "\n")
     (out / "diagnostic_compute.tex").write_text(
-        f"Six exact diagnostic replays add {manifest['sum_replay_seconds']:.1f} run-seconds "
-        "for per-update logging; they introduce no new settings or seeds.\n")
+        f"Six trajectory replays used {manifest['sum_replay_seconds']:.1f} run-seconds "
+        "for per-update logging and checkpoint verification.\n")
     entries = []
     for filename, selected, metrics in [
         ("d1e6_parameter_trajectories.pdf", traces, ["parallel_means", "orthogonal_norms"]),
         ("d1e6_weight_updates.pdf", traces, ["weights"]),
     ]:
         entries.append({"file": filename, "runs": [r["source_suite"]+"/"+r["source_run_id"] for r in selected],
-                        "metrics": metrics, "origin": "User-requested mean and weight trajectories; exact replay"})
+                        "metrics": metrics, "description": "Per-update mean and weight trajectories at d=10^6"})
     return entries

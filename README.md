@@ -1,4 +1,4 @@
-# Hybrid EM simulations
+# EM_Separation
 
 Code for the main and appendix simulation figures in *Is $\sqrt{d}$ Separation Necessary for Gradient EM to Learn Gaussian Mixtures in High Dimensions?*
 
@@ -25,7 +25,7 @@ This runs the two configurations, replays the high-dimensional runs to record ev
 | Generated figure | Content | Filename used in the manuscript |
 |---|---|---|
 | `artifacts/main_trajectories.pdf` | Dimensions 10 and 500, seed 0 | `em_main_trajectories.pdf` |
-| `artifacts/original_trajectories.pdf` | Dimensions 10 and 500, all three seeds | `em_appendix_original_trajectories.pdf` |
+| `artifacts/fixed_separation_trajectories.pdf` | Dimensions 10 and 500, all three seeds | `em_appendix_original_trajectories.pdf` |
 | `artifacts/d1e6_parameter_trajectories.pdf` | Dimension 1,000,000, mean trajectories | `em_appendix_d1e6_mean_trajectories.pdf` |
 | `artifacts/d1e6_weight_updates.pdf` | Dimension 1,000,000, fitted-weight trajectories | `em_appendix_d1e6_weight_trajectories.pdf` |
 
@@ -42,7 +42,7 @@ export OMP_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export VECLIB_MAXIMUM_THREADS=1
 python -m experiments.run --config configs/fixed_separation.json
-python -m experiments.run --config configs/rebuttal_d1e6.json
+python -m experiments.run --config configs/high_dimension.json
 python -m experiments.diagnose
 python -m experiments.summarize
 ```
@@ -51,7 +51,7 @@ python -m experiments.summarize
 
 | Parameter | Fixed separation | Dimension-dependent separation |
 |---|---|---|
-| Configuration | `configs/fixed_separation.json` | `configs/rebuttal_d1e6.json` |
+| Configuration | `configs/fixed_separation.json` | `configs/high_dimension.json` |
 | Dimension | 10, 500 | 1,000,000 |
 | True / fitted components | 2 / 10 | 2 / 10 |
 | True weights | (0.3, 0.7) | (0.3, 0.7) |
@@ -72,9 +72,9 @@ pi_next[i] = mean(psi_i(X))
 mu_next[i] = mu[i] + 0.05 * mean(psi_i(X) * (X - mu[i]))
 ```
 
-Weights are stored in log space without floors, pruning, or restarts. The selected configurations use the direct empirical update. The mean update is not divided by the fitted weight.
+Weights are stored in log space without floors, pruning, or restarts. Both configurations use the direct empirical update. The mean update is not divided by the fitted weight.
 
-Each seed determines separate initialization, training, and evaluation streams using `SeedSequence(seed).spawn(3)`. Different seeds change all stochastic parts of a run. The same seed values are reused across settings: the two high-dimensional separation settings share their initial source labels, standard Gaussian draws, and batch random draws within each seed. They therefore form three paired comparisons. Component indices retain initialization order; no component is given special treatment.
+Each seed determines separate initialization, training, and evaluation streams using `SeedSequence(seed).spawn(3)`. Different seeds change all stochastic parts of a run. The same seed values are reused across settings: the two high-dimensional separation settings share their initial source labels, standard Gaussian draws, and batch random draws within each seed. They therefore form three paired comparisons. Component indices follow initialization order.
 
 ## Outputs and checks
 
@@ -82,7 +82,7 @@ All three seeds are shown in the appendix figures. In the recorded runs, all thr
 
 The main figure uses seed 0. The shared plotting style uses thin colored curves, gray initialization crosses, colored endpoints, and red stars for true means. The two high-dimensional plots retain the same component colors.
 
-The replay checks final full-dimensional means and log weights against the original checkpoints bit for bit. The plot generator checks run completeness and provenance. `artifacts/figure_manifest.json` maps all twelve runs to the four figures. Held-out measurements are retained in the raw logs; the paper figures show only the specified trajectories. Evaluation uses separate random draws and does not affect training.
+The replay checks final full-dimensional means and log weights against the saved checkpoints bit for bit. The plot generator checks run completeness and provenance. `artifacts/figure_manifest.json` maps all twelve runs to the four figures. The figures show mean and weight trajectories; held-out measurements are saved in the numerical logs. Evaluation uses separate random draws and does not affect training.
 
 The reference runs used about 470 seconds for training and evaluation, plus 396 seconds for detailed replay, with a maximum process RSS of approximately 920 MiB. Checkpoints occupy approximately 461 MB. Times exclude file output, plotting, and setup and depend on hardware. Numerical-library threads are limited to one by the Makefile. Floating-point differences across platforms and library builds can affect exact numerical agreement.
 

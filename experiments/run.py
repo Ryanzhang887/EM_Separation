@@ -1,4 +1,4 @@
-"""Run a JSON-defined suite: python -m experiments.run --config configs/smoke.json."""
+"""Run an experiment suite defined by a JSON configuration file."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -15,10 +15,6 @@ import numpy as np
 from .core import initialize, draw_batch, update, evaluate
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def digest(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def code_digest():
@@ -74,7 +70,7 @@ def machine():
             cpu = subprocess.check_output(["/usr/sbin/sysctl", "-n", "machdep.cpu.brand_string"],
                                           text=True, stderr=subprocess.DEVNULL).strip()
         except (OSError, subprocess.CalledProcessError):
-            cpu = f"{platform.machine()} (CPU model unavailable in sandbox)"
+            cpu = f"{platform.machine()} (CPU model unavailable)"
     return {"system": platform.platform(), "cpu": cpu, "logical_cpus": os.cpu_count(),
             "python": platform.python_version(), "numpy": np.__version__, "gpu": "none",
             "thread_environment": {k: os.environ.get(k) for k in
@@ -139,8 +135,7 @@ def main():
     expected = [{"id": hashlib.sha256(json.dumps(c, sort_keys=True).encode()).hexdigest()[:12], "config": c}
                 for c in planned]
     manifest = {"suite": config["name"], "config": config, "expected_runs": expected,
-                "code_sha256": fingerprint, "machine": machine(),
-                "source_sha256": {p.name: digest(p) for p in sorted(ROOT.glob("*.pdf"))}}
+                "code_sha256": fingerprint, "machine": machine()}
     manifest_path = out / "manifest.json"
     if manifest_path.exists():
         old = json.loads(manifest_path.read_text())

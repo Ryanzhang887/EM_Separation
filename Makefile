@@ -9,7 +9,7 @@ all: reproduce
 
 reproduce:
 	$(PYTHON) -m experiments.run --config configs/fixed_separation.json
-	$(PYTHON) -m experiments.run --config configs/rebuttal_d1e6.json
+	$(PYTHON) -m experiments.run --config configs/high_dimension.json
 	$(PYTHON) -m experiments.diagnose
 	$(MAKE) figures
 

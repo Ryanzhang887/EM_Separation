@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-# Keep font/cache writes inside the project, including in restricted environments.
+# Store Matplotlib font and configuration caches inside the project.
 ROOT = Path(__file__).resolve().parents[1]
 os.environ.setdefault("MPLCONFIGDIR", str(ROOT / ".cache" / "matplotlib"))
 os.environ.setdefault("XDG_CACHE_HOME", str(ROOT / ".cache"))
@@ -75,7 +75,7 @@ def main():
     parser.add_argument("--diagnostics", type=Path, help="Default: RESULTS/diagnostics_d1e6")
     args = parser.parse_args()
     manifests, runs = [], []
-    for suite in ["fixed_separation", "rebuttal_scale_d1e6"]:
+    for suite in ["fixed_separation", "high_dimension"]:
         manifest, group = load_suite(args.results / suite)
         manifests.append(manifest)
         runs.extend(group)
@@ -101,8 +101,8 @@ def main():
         writer.writeheader()
         writer.writerows(final)
     figures = generate_figures(runs, out, args.diagnostics or args.results / "diagnostics_d1e6")
-    provenance = {"scope": "fixed_separation_d10_d500_and_d1e6", "parameter_policy": "fixed_separation_dimensions_10_500_other_original_parameters_retained",
-                  "reproduction_status": "all_paper_figures_generated_by_supplied_code",
+    provenance = {"scope": "fixed_separation_d10_d500_and_d1e6",
+                  "reproduction_status": "all_paper_figures_generated_by_experiment_code",
                   "total_runs": len(runs), "sum_run_seconds": sum(r["elapsed_seconds"] for r in runs),
                   "max_process_peak_rss_mib": max(r["process_peak_rss_mib"] for r in runs),
                   "simulation_code_sha256": manifests[0]["code_sha256"],
@@ -114,7 +114,7 @@ def main():
                   "machine": manifests[0]["machine"]}
     (out / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
     (out / "compute.tex").write_text(
-        f"{len(runs)} retained reconstruction runs; {provenance['sum_run_seconds']:.1f} summed run-seconds "
+        f"{len(runs)} simulation runs; {provenance['sum_run_seconds']:.1f} summed run-seconds "
         f"({provenance['sum_run_seconds']/3600:.3f} CPU-worker hours); "
         f"{provenance['max_process_peak_rss_mib']:.1f} MiB maximum process RSS.\n")
     print(f"Validated {len(runs)} completed runs; generated one main and three appendix figures in {out}")
