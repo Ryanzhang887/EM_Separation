@@ -1,0 +1,46 @@
+{
+  "name": "rebuttal_scale_d1e6",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "defaults": {
+    "components": 10,
+    "weights": [
+      0.3,
+      0.7
+    ],
+    "geometry": "line",
+    "learning_rate": 0.05,
+    "steps": 500,
+    "batch_size": 16,
+    "eval_every": 50,
+    "eval_samples": 4096,
+    "estimator": "direct",
+    "representation": "dense",
+    "sampling": "mixture"
+  },
+  "experiments": [
+    {
+      "name": "power_045",
+      "separation_rule": "power",
+      "separation_value": 0.45,
+      "grid": {
+        "dimension": [
+          1000000
+        ]
+      }
+    },
+    {
+      "name": "sqrt_10",
+      "separation_rule": "sqrt",
+      "separation_value": 10.0,
+      "grid": {
+        "dimension": [
+          1000000
+        ]
+      }
+    }
+  ]
+}

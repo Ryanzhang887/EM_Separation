@@ -1,0 +1,37 @@
+{
+  "name": "fixed_separation",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "defaults": {
+    "components": 10,
+    "weights": [
+      0.3,
+      0.7
+    ],
+    "geometry": "line",
+    "learning_rate": 0.05,
+    "steps": 2000,
+    "batch_size": 8192,
+    "eval_every": 50,
+    "eval_samples": 4096,
+    "separation_rule": "fixed",
+    "separation_value": 6.0,
+    "estimator": "direct",
+    "representation": "dense",
+    "sampling": "mixture"
+  },
+  "experiments": [
+    {
+      "name": "fixed_delta",
+      "grid": {
+        "dimension": [
+          10,
+          500
+        ]
+      }
+    }
+  ]
+}
